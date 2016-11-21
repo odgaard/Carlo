@@ -1,4 +1,3 @@
-
 module minheap
 function min_heapify(A, i)
     left = i << 1
@@ -23,6 +22,12 @@ function build_min_heap(A)
     end
 end
 
+function heappop(A)
+    result = shift!(A)
+    min_heapify(A, 1)
+    return result
+end
+
 function main()
     size = 30
     normalList = Array(Int64, size)
@@ -35,4 +40,20 @@ function main()
     @time build_min_heap(normalList)
 end
 end
-maxheap.main()
+
+
+module min_priority_queue
+count = 0
+
+function build_min_priority_queue(A)
+    minheap.build_min_heap(A)
+end
+
+function extract_min(A)
+    return minheap.heappop(A)
+end
+
+
+
+
+minheap.main()

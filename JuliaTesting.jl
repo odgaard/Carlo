@@ -1,9 +1,9 @@
 function generateUnsortedList(size)
-  unsortedList = Array(Int64, size)
-  for i = 1:size
-    unsortedList[i] = rand(1:100000000)
-  end
-  return unsortedList
+    unsortedList = Array(Int64, size)
+    for i = 1:size
+        unsortedList[i] = rand(1:100000000)
+    end
+    return unsortedList
 end
 
 function mergesort(A)
@@ -64,9 +64,9 @@ function quicksort(A,i=1,j=length(A))
 end
 
 function main()
-  @time unsortedList = generateUnsortedList(100000000)
-  #@time mergesort(unsortedList)
-  @time quicksort(unsortedList)
+    @time unsortedList = generateUnsortedList(100000000)
+    #@time mergesort(unsortedList)
+    @time quicksort(unsortedList)
 end
 
 
