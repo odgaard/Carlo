@@ -1,2 +1,2 @@
 # Carlo
-Currently just learning Julia and implementing basic data structures and algorithms 
+Currently creating basic logic for playing Go.
