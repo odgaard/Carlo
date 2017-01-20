@@ -1,8 +1,15 @@
 
+
+type Group
+    liberties::Int64
+    members::Set
+end
+
 function selfAtari(board::Array, coordinate::Int64, player::Int64)
     currBoard = board
     futBoard = copy(board)
     performMove(futBoard, coordinate, player)
+    #Handle returning the enemy groups to previous state, by adding liberties again
     if futBoard[coordinate] == 0
         return true
     end
@@ -22,6 +29,10 @@ function ko(boards::Array, coordinate::Int64, player::Int64)
     return true
 end
 
+function removeGroup(coordinate)
+    print("Removed group!", coordinate, groupDict[coordinate])
+end
+
 function validMove(boards::Array, coordinate::Int64, player::Int64)
     board = boards[2]
     if (board[coordinate] > 0)
@@ -29,82 +40,18 @@ function validMove(boards::Array, coordinate::Int64, player::Int64)
         return false
     end
 
-#    if selfAtari(board, coordinate, player)
-#        println("You can't put yourself in atari")
-#        return false
-#    end
+    if selfAtari(board, coordinate, player)
+        println("You can't put yourself in atari")
+        return false
+    end
 
-#    if ko(boards, coordinate, player)
-#        println("This is a ko. Play somewhere else.")
-#        return false
-#    end
+    if ko(boards, coordinate, player)
+        println("This is a ko. Play somewhere else.")
+        return false
+    end
 
     return true
 end
-
-function checkSurrounded(board::Array, coordinate::Int64, checked::Array)
-#TODO
-    if coordinate - size >= 1 && !(coordinate-size in checked)
-        println(coordinate-size, checked)
-        println("test1", )
-        println(board[coordinate-size])
-        if board[coordinate-size] == 0
-            print("false")
-            return false
-        end
-        if board[coordinate-size] == board[coordinate]
-            push!(checked, coordinate-size)
-            println("Go?1")
-            return checkSurrounded(board, coordinate-size, checked)
-        end
-    end
-
-    if coordinate-1 >= 1 && !(coordinate-1 in checked)
-        println("test2")
-        println(board[coordinate-1])
-        if board[coordinate-1] == 0
-            print("false")
-            return false
-        end
-        if board[coordinate-1] == board[coordinate]
-            println("Go?2")
-            push!(checked, coordinate-1)
-            return checkSurrounded(board, coordinate-1, checked)
-        end
-    end
-
-    if coordinate + 1 <= size*size && !(coordinate+1 in checked)
-        println("test3")
-        println(board[coordinate+1])
-        if board[coordinate+1] == 0
-            print("false")
-            return false
-        end
-        if board[coordinate+1] == board[coordinate]
-            println("Go?3")
-            push!(checked, coordinate+1)
-            return checkSurrounded(board, coordinate+1, checked)
-        end
-    end
-
-    if coordinate + size <= size*size && !(coordinate+size in checked)
-        println("test4")
-        println(board[coordinate+size])
-        if board[coordinate+size] == 0
-            print("false")
-            return false
-        end
-        if board[coordinate+size] == board[coordinate]
-            push!(checked, coordinate+size)
-            println("Go?4")
-            return checkSurrounded(board, coordinate+size, checked)
-        end
-    end
-    println("True", coordinate, checked)
-    push!
-    return true
-end
-
 
 function performMove(board::Array, coordinate::Int64, player::Int64)
 #If player 1 played the move, check if player 2 was surrounded first, then
@@ -114,46 +61,53 @@ function performMove(board::Array, coordinate::Int64, player::Int64)
     board[coordinate] = player
     player == 1 ? otherPlayer = 2 : otherPlayer = 1
 
-    checked = zeros(Int64, 0)
-    #checked[1] = coordinate
-    if coordinate-size >= 1
-        if board[coordinate-size] == otherPlayer
-            push!(checked, coordinate-size)
-            if checkSurrounded(board, coordinate-size, checked)
-                println("Captured stones!1", checked)
-                #Remove checked stones
-            end
-        end
-    end
+    thisStone = Group(4, Set(coordinate))
+    #FIX PROBLEM WITH HAVING LIBERTIES BY LOOPING AROUND THE BOARD
+    for check in [-size, -1, 1, size]
+        if coordinate+check < 1
+            thisStone.liberties -= 1
+        if coordinate+check > size*size
+            thisStone.liberties -= 1
+        if board[coordinate+check] == otherPlayer
+            thisStone.liberties -= 1
 
-    if coordinate-1 >= 1
-        if board[coordinate-1] == otherPlayer
-            push!(checked, coordinate-1)
-            if checkSurrounded(board, coordinate-1, checked)
-                println("Captured stones!2", checked)
-            end
-        end
-    end
 
-    if coordinate+1 <= size*size
-        if board[coordinate+1] == otherPlayer
-            push!(checked, coordinate+1)
-            if checkSurrounded(board, coordinate+1, checked)
-                println("Captured stones!3", checked)
-            end
-        end
-    end
+    groupDict[coordinate] = thisStone
+    enemyStones = Array{Int64}(1)
+    for check in [-size, -1, 1, size]
+        if coordinate+check >= 1 && coordinate+check <=size*size
+            if board[coordinate+check] == otherPlayer
+                push!(enemyStones, coordinate+check)
+                groupDict[coordinate+check].liberties -= 1
+                if groupDict[coordinate+check].liberties <= 0
+                    removeGroup(coordinate+check)
+                else
+                    groupDict[coordinate].liberties -= 1
+                    if groupDict[coordinate].liberties <= 0
+                        println("SELF ATARI!!!")
+                        removeGroup(coordinate)
+                        for enemy in enemyStones
+                            groupDict[enemy].liberties += 1
+                        end
+                    end
+                end
+            elseif board[coordinate+check] == player
+                print("Friendly stone", player)
+                if coordinate in groupDict[coordinate+check].members
+                else
+                    union(groupDict[coordinate+check].members, groupDict[coordinate].members)
+                    groupDict[coordinate+check].liberties += groupDict[coordinate].liberties - 1
+                    groupDict[coordinate] = groupDict[coordinate+check]
+                    println(groupDict[coordinate], groupDict[coordinate+check])
 
-    if coordinate+size <= size*size
-        if board[coordinate+size] == otherPlayer
-            push!(checked, coordinate+size)
-            if checkSurrounded(board, coordinate+size, checked)
-                println("Captured stones!4", checked)
+                end
             end
+        else
+            groupDict[coordinate].liberties -= 1
+
         end
     end
 end
-
 
 function makeMove(boards::Array, coordinate::Int64, player::Int64)
     if validMove(boards, coordinate, player)
@@ -166,12 +120,10 @@ function makeMove(boards::Array, coordinate::Int64, player::Int64)
     end
 end
 
-#TODO
-#Lag en min_priority_queue med BFS og bruk den for checkSurrounded
-
 
 global scores = zeros(Int64, 2)
 global size = 3
+global groupDict = Dict()
 
 board1 = zeros(Int64, size, size)
 board2 = zeros(Int64, size, size)
