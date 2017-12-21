@@ -1,0 +1,11 @@
+place stone
+simulate stone captures
+if is identical to previous, then ko, then illegal move
+
+
+place stone
+calculate liberties of placed stone
+calculate liberties of enemy group - 1
+
+attach stone to friendly groups
+calculate liberties of friendly groups
